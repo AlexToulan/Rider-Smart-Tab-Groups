@@ -12,6 +12,17 @@ class FileOpenedListener : FileEditorManagerListener {
 
     companion object {
         private val LOG = Logger.getInstance(FileOpenedListener::class.java)
+
+        // Helper function to get extension counts for a window
+        private fun getExtensionCounts(window: EditorWindow, excludeFile: VirtualFile? = null): MutableMap<String, Int> {
+            val counts = mutableMapOf<String, Int>()
+            for (f in window.fileList) {
+                if (f == excludeFile) continue
+                val ext = f.extension?.toLowerCase() ?: continue
+                counts[ext] = (counts[ext] ?: 0) + 1
+            }
+            return counts
+        }
     }
 
     override fun fileOpened(source: FileEditorManager, file: VirtualFile) {
@@ -38,8 +49,9 @@ class FileOpenedListener : FileEditorManagerListener {
 
         // Find the window with the most files of the same type.
         for (window in allWindows) {
-            val count = window.fileList.count { it.extension?.toLowerCase() == newFileExtension && it != file }
-            LOG.info("FileOpenedListener: Window ${window.toString()} has $count files with extension .$newFileExtension")
+            val countsForWindow = getExtensionCounts(window, file) // Exclude the current file
+            val count = countsForWindow[newFileExtension] ?: 0
+            LOG.info("FileOpenedListener: Window ${window.toString()} has $count files with extension .$newFileExtension (from dictionary)")
             if (count > maxCount) {
                 maxCount = count
                 bestWindow = window
