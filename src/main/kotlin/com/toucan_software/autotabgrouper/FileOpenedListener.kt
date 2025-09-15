@@ -12,31 +12,19 @@ class FileOpenedListener : FileEditorManagerListener {
 
     companion object {
         private val LOG = Logger.getInstance(FileOpenedListener::class.java)
-
-        // Helper function to get extension counts for a window
-        private fun getExtensionCounts(window: EditorWindow, excludeFile: VirtualFile? = null): MutableMap<String, Int> {
-            val counts = mutableMapOf<String, Int>()
-            for (f in window.fileList) {
-                if (f == excludeFile) continue
-                val ext = f.extension?.toLowerCase() ?: continue
-                counts[ext] = (counts[ext] ?: 0) + 1
-            }
-            return counts
-        }
     }
 
     override fun fileOpened(source: FileEditorManager, file: VirtualFile) {
         LOG.info("FileOpenedListener: fileOpened method called for file: ${file.name}")
         val project = source.project
-        val newFileExtension = file.extension?.toLowerCase() ?: run {
+        val newFileExtension = file.extension?.lowercase() ?: run {
             LOG.info("FileOpenedListener: File has no extension or extension is empty. Ignoring: ${file.name}")
             return
         }
 
         val fileEditorManager = FileEditorManagerEx.getInstanceEx(project)
         val allWindows = fileEditorManager.windows
-
-        LOG.info("FileOpenedListener: Found ${allWindows.size} editor windows.")
+        val currentWindow = fileEditorManager.currentWindow // Get current window here
 
         // Don't do anything if there's only one tab group open.
         if (allWindows.size <= 1) {
@@ -49,9 +37,8 @@ class FileOpenedListener : FileEditorManagerListener {
 
         // Find the window with the most files of the same type.
         for (window in allWindows) {
-            val countsForWindow = getExtensionCounts(window, file) // Exclude the current file
-            val count = countsForWindow[newFileExtension] ?: 0
-            LOG.info("FileOpenedListener: Window ${window.toString()} has $count files with extension .$newFileExtension (from dictionary)")
+            val count = window.fileList.count { it.extension?.lowercase() == newFileExtension && it != file }
+            LOG.info("FileOpenedListener: Window ${window.toString()} has $count files with extension .$newFileExtension")
             if (count > maxCount) {
                 maxCount = count
                 bestWindow = window
@@ -60,8 +47,6 @@ class FileOpenedListener : FileEditorManagerListener {
 
         // If we found a suitable window with at least one matching file...
         if (bestWindow != null && maxCount > 0) {
-            val currentWindow = fileEditorManager.currentWindow
-            LOG.info("FileOpenedListener: Best window found: ${bestWindow.toString()} with $maxCount matches. Current window: ${currentWindow?.toString()}")
             // ... and it's not the one the file is already in...
             if (bestWindow != currentWindow) {
                 LOG.info("FileOpenedListener: Scheduling move of ${file.name} to window ${bestWindow.toString()}")
@@ -72,14 +57,12 @@ class FileOpenedListener : FileEditorManagerListener {
                     // This call will move the tab to the 'bestWindow'.
                     fileEditorManager.openFile(file, bestWindow!!)
                     LOG.info("FileOpenedListener: Move of ${file.name} completed to window ${bestWindow.toString()}")
-                    LOG.info("FileOpenedListener: State after move - Best window files: ${bestWindow.fileList.map { it.name }}")
-                    LOG.info("FileOpenedListener: State after move - Current window files: ${currentWindow?.fileList?.map { it.name }}")
                 }
             } else {
                 LOG.info("FileOpenedListener: File ${file.name} is already in the best window. No move needed.")
             }
         } else {
             LOG.info("FileOpenedListener: No suitable window found for ${file.name} with extension .$newFileExtension. No grouping applied.")
+            }
         }
     }
-}
