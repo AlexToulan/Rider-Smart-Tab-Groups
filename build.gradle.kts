@@ -21,7 +21,9 @@ kotlin {
 
 dependencies {
     intellijPlatform {
-        create("RD", "2025.1")
+        create("RD", "2025.1") {
+            useInstaller.set(false)
+        }
     }
 }
 
@@ -30,5 +32,12 @@ intellijPlatform {
         changeNotes.set("""
             Initial release of the Smart Tab Grouper plugin.
         """)
+    }
+}
+
+tasks {
+    runIde {
+        // Add this line to disable the failing feature
+        jvmArgs("-Dide.win.jumplist=false")
     }
 }

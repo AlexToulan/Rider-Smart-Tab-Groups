@@ -9,7 +9,7 @@
   ]]></description>
 
   <depends>com.intellij.modules.platform</depends>
-  <depends>com.jetbrains.rider</depends>
+  
 
   <extensions defaultExtensionNs="com.intellij">
   </extensions>
