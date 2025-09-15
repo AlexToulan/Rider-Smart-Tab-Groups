@@ -1,0 +1,22 @@
+<idea-plugin>
+  <id>com.toucan_software.autotabgrouper</id>
+  <name>Smart Tab Grouper</name>
+  <version>1.0.0</version>
+  <vendor email="contact@toucan-software.com" url="https://www.toucan-software.com">Toucan Software</vendor>
+
+  <description><![CDATA[
+    Automatically groups newly opened tabs with existing tabs of the same file type.
+  ]]></description>
+
+  <depends>com.intellij.modules.platform</depends>
+  
+
+  <extensions defaultExtensionNs="com.intellij">
+  </extensions>
+
+  <applicationListeners>
+    <listener
+        class="com.toucan_software.autotabgrouper.FileOpenedListener"
+        topic="com.intellij.openapi.fileEditor.FileEditorManagerListener"/>
+  </applicationListeners>
+</idea-plugin>
