@@ -3,6 +3,7 @@ package com.toucan_software.autotabgrouper
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.FileEditorManagerListener
+import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
 import com.intellij.openapi.fileEditor.impl.EditorWindow
 import com.intellij.openapi.vfs.VirtualFile
@@ -17,6 +18,14 @@ class FileOpenedListener : FileEditorManagerListener {
     override fun fileOpened(source: FileEditorManager, file: VirtualFile) {
         LOG.info("FileOpenedListener: fileOpened method called for file: ${file.name}")
         val project = source.project
+
+        val selectedEditor = source.selectedEditor
+        var caretOffset: Int? = null
+        if (selectedEditor is TextEditor && selectedEditor.file == file) {
+            caretOffset = selectedEditor.editor.caretModel.offset
+            LOG.info("FileOpenedListener: Captured caret offset $caretOffset for ${file.name}")
+        }
+
         val newFileExtension = file.extension?.lowercase() ?: run {
             LOG.info("FileOpenedListener: File has no extension or extension is empty. Ignoring: ${file.name}")
             return
@@ -56,6 +65,15 @@ class FileOpenedListener : FileEditorManagerListener {
                 ApplicationManager.getApplication().invokeLater {
                     // This call will move the tab to the 'bestWindow'.
                     fileEditorManager.openFile(file, bestWindow!!)
+
+                    if (caretOffset != null) {
+                        val newEditor = source.getSelectedEditor(file)
+                        if (newEditor is TextEditor) {
+                            newEditor.editor.caretModel.moveToOffset(caretOffset)
+                            LOG.info("FileOpenedListener: Restored caret offset to $caretOffset for ${file.name}")
+                        }
+                    }
+
                     LOG.info("FileOpenedListener: Move of ${file.name} completed to window ${bestWindow.toString()}")
                 }
             } else {
@@ -63,6 +81,6 @@ class FileOpenedListener : FileEditorManagerListener {
             }
         } else {
             LOG.info("FileOpenedListener: No suitable window found for ${file.name} with extension .$newFileExtension. No grouping applied.")
-            }
         }
     }
+}
