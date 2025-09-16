@@ -1,7 +1,7 @@
 <idea-plugin>
   <id>com.toucan_software.autotabgrouper</id>
   <name>Smart Tab Grouper</name>
-  <version>1.0.0</version>
+  <version>1.0.1</version>
   <vendor email="contact@toucan-software.com" url="https://www.toucan-software.com">Toucan Software</vendor>
 
   <description><![CDATA[

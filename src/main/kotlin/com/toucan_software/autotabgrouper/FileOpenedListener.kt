@@ -1,13 +1,15 @@
 package com.toucan_software.autotabgrouper
 
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.editor.LogicalPosition
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.FileEditorManagerListener
+import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
 import com.intellij.openapi.fileEditor.impl.EditorWindow
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.openapi.diagnostic.Logger
 
 class FileOpenedListener : FileEditorManagerListener {
 
@@ -20,7 +22,7 @@ class FileOpenedListener : FileEditorManagerListener {
         val project = source.project
 
         val selectedEditor = source.selectedEditor
-        var caretOffset: Int? = null
+        var caretOffset = -1
         if (selectedEditor is TextEditor && selectedEditor.file == file) {
             caretOffset = selectedEditor.editor.caretModel.offset
             LOG.info("FileOpenedListener: Captured caret offset $caretOffset for ${file.name}")
@@ -62,18 +64,16 @@ class FileOpenedListener : FileEditorManagerListener {
                 // Explicitly close the file from the current window first
                 currentWindow?.closeFile(file)
                 // Schedule the move to happen after the IDE is done opening the file.
+                val finalCaretOffset = caretOffset
                 ApplicationManager.getApplication().invokeLater {
-                    // This call will move the tab to the 'bestWindow'.
                     fileEditorManager.openFile(file, bestWindow!!)
-
-                    if (caretOffset != null) {
-                        val newEditor = source.getSelectedEditor(file)
-                        if (newEditor is TextEditor) {
-                            newEditor.editor.caretModel.moveToOffset(caretOffset)
-                            LOG.info("FileOpenedListener: Restored caret offset to $caretOffset for ${file.name}")
+                    if (finalCaretOffset != -1) {
+                        ApplicationManager.getApplication().invokeLater {
+                            val descriptor = OpenFileDescriptor(project, file, finalCaretOffset)
+                            descriptor.navigate(true)
+                            LOG.info("FileOpenedListener: Restored caret position to offset $finalCaretOffset for ${file.name}")
                         }
                     }
-
                     LOG.info("FileOpenedListener: Move of ${file.name} completed to window ${bestWindow.toString()}")
                 }
             } else {
